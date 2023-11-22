@@ -1,4 +1,4 @@
-sim: shell.c sim.c
+sim: dram.c shell.c sim.c
 	gcc -g -O2 $^ -o $@
 
 test: shell.c sim.c
