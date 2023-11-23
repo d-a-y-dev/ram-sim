@@ -4,21 +4,24 @@
 #include <string.h>
 #include <stdint.h>
 #include "shell.h"
+#include <vector>
+#include <iostream>
+using namespace std;
 
 typedef struct {
-    uint8_t cells[1024][1024];
+    vector<vector<uint8_t>> cells;
 } bank;
 
 typedef struct {
-    bank banks[8];
+    vector<bank> banks;
 } chip;
 
 typedef struct {
-    chip chips[8];
+    vector<chip> chips;
 } dimm;
 
 typedef struct {
-    uint32_t data[8];
+    vector<uint32_t> data;
 } cache_block;
 
 dimm dram;
@@ -31,7 +34,7 @@ void inspect_dram(uint32_t start_address, uint32_t end_address){
             uint32_t row_id = (current_address >> 10) & 0x3FF;
             uint32_t bank_id = (current_address >> 20) & 0x7;
             printf("current address: %x\n", current_address);
-                uint8_t byte = dram.chips[0].banks[bank_id].cells[row_id][col_id+3];
+                uint8_t byte = dram.chips[0].banks[bank_id].cells[row_id][col_id];
                 printf("%x\n", byte);
             current_address++;
         }
@@ -50,12 +53,18 @@ void print_dram_data(cache_block block){
 /* Purpose   : initialize dram memory cells to 0s               */
 /*                                                             */
 /***************************************************************/
-void init_dram() {                                           
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++){
-            for (int k = 0; k < 1024; k++){
-                for (int l = 0; l < 1024; l++){
-                    dram.chips[i].banks[j].cells[k][l] = 0;
+void init_dram(int chip_per_rank, int bank_per_chip, int row_size, int col_size) {                                           
+    for (int i = 0; i < chip_per_rank; i++) {
+        chip c;
+        dram.chips.push_back(c);
+        for (int j = 0; j < bank_per_chip; j++){
+            bank b;
+            dram.chips[i].banks.push_back(b);
+            for (int k = 0; k < row_size; k++){
+                vector<uint8_t> row;
+                dram.chips[i].banks[j].cells.push_back(row);
+                for (int l = 0; l < col_size; l++){
+                    dram.chips[i].banks[j].cells[k].push_back(0);
                 }
             }
         }
@@ -76,10 +85,10 @@ cache_block read_dram(uint32_t address) {
     uint32_t bank_id = (address >> 20) & 0x7;
     cache_block block;
     for (int i = 0; i < 8; i++) {
-        block.data[i] = (dram.chips[i].banks[bank_id].cells[row_id][col_id+3] << 24) |
+        block.data.push_back((dram.chips[i].banks[bank_id].cells[row_id][col_id+3] << 24) |
             (dram.chips[i].banks[bank_id].cells[row_id][col_id+2] << 16) |
             (dram.chips[i].banks[bank_id].cells[row_id][col_id+1] <<  8) |
-            (dram.chips[i].banks[bank_id].cells[row_id][col_id] <<  0);
+            (dram.chips[i].banks[bank_id].cells[row_id][col_id] <<  0));
     }
     return block;
 }
@@ -105,7 +114,7 @@ void write_dram(uint32_t address, uint32_t value) {
 }
 
 int main(void){
-    init_dram();
+    init_dram(8, 8, 500, 500);
     cache_block block = read_dram(0x00000000);
     //inspect_dram(0x00000000, 0x00000009);
     print_dram_data(block);
