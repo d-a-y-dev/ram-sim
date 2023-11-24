@@ -21,6 +21,7 @@
 #include <stdint.h>
 
 #include "shell.h"
+#include "dram.h"
 
 /***************************************************************/
 /* Main memory.                                                */
@@ -435,6 +436,7 @@ void initialize(char *program_filename, int num_prog_files)
   int i;
 
   init_memory();
+  init_dram(8, 8, 1024, 1024);
   for ( i = 0; i < num_prog_files; i++ ) {
     load_program(program_filename);
     while(*program_filename++ != '\0');

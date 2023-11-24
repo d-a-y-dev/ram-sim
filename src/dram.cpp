@@ -4,25 +4,11 @@
 #include <string.h>
 #include <stdint.h>
 #include "shell.h"
+#include "dram.h"
 #include <vector>
 #include <iostream>
 using namespace std;
 
-typedef struct {
-    vector<vector<uint8_t>> cells;
-} bank;
-
-typedef struct {
-    vector<bank> banks;
-} chip;
-
-typedef struct {
-    vector<chip> chips;
-} dimm;
-
-typedef struct {
-    vector<uint32_t> data;
-} cache_block;
 
 dimm dram;
 
@@ -40,10 +26,16 @@ void inspect_dram(uint32_t start_address, uint32_t end_address){
         }
 }
 
-void print_dram_data(cache_block block){
-    for(int i = 0; i < 8; i++){
-        printf("%x\n", block.data[i]);
-    }
+uint32_t get_block_data_at_address(cache_block block){
+    uint32_t first_part = (block.data[0] & 0xFF);
+    uint32_t second_part = (block.data[1]  & 0xFF) << 8;
+    uint32_t third_part = (block.data[2] & 0xFF) << 16;
+    uint32_t fourth_part = (block.data[3] & 0xFF) << 24;
+    uint32_t return_data = fourth_part |
+        third_part |
+        second_part |
+        first_part;
+    return  return_data;
 }
 
 /***************************************************************/
@@ -78,7 +70,7 @@ void init_dram(int chip_per_rank, int bank_per_chip, int row_size, int col_size)
 /* Purpose   : read back 32 bytes of dram                      */
 /*                                                             */
 /***************************************************************/
-cache_block read_dram(uint32_t address) {                                           
+uint32_t read_dram(uint32_t address) {                                           
     printf("READ\n");
     uint32_t col_id = address & 0x3FF;
     uint32_t row_id = (address >> 10) & 0x3FF;
@@ -90,7 +82,11 @@ cache_block read_dram(uint32_t address) {
             (dram.chips[i].banks[bank_id].cells[row_id][col_id+1] <<  8) |
             (dram.chips[i].banks[bank_id].cells[row_id][col_id] <<  0));
     }
-    return block;
+    for(int i = 0; i < 8; i++){
+        printf("%8x\n", block.data[i]);
+    }
+    uint32_t data = get_block_data_at_address(block);
+    return data;
 }
 
 /***************************************************************/
@@ -106,21 +102,24 @@ void write_dram(uint32_t address, uint32_t value) {
     uint32_t row_id = (address >> 10) & 0x3FF;
     uint32_t bank_id = (address >> 20) & 0x7;
     for (int i = 0; i < 8; i++) {
-            dram.chips[i].banks[bank_id].cells[row_id][col_id+3] = (value >> 24) & 0xFF;
-            dram.chips[i].banks[bank_id].cells[row_id][col_id+2] = (value >> 16) & 0xFF;
-            dram.chips[i].banks[bank_id].cells[row_id][col_id+1] = (value >>  8) & 0xFF;
-            dram.chips[i].banks[bank_id].cells[row_id][col_id+0] = (value >>  0) & 0xFF;
+            dram.chips[i].banks[bank_id].cells[row_id][col_id+3] = value >> 24 & 0xFF;
+            dram.chips[i].banks[bank_id].cells[row_id][col_id+2] = value >> 16 & 0xFF;
+            dram.chips[i].banks[bank_id].cells[row_id][col_id+1] = value >> 8 & 0xFF;
+            dram.chips[i].banks[bank_id].cells[row_id][col_id] = value & 0xFF;
+            value = value >> 8;
     }
 }
 
+/*
 int main(void){
-    init_dram(8, 8, 500, 500);
+    init_dram(8, 8, 1024, 1024);
     cache_block block = read_dram(0x00000000);
-    //inspect_dram(0x00000000, 0x00000009);
-    print_dram_data(block);
+    uint32_t data = get_block_data_at_address(block);
+    printf("data: %x\n", data);
     write_dram(0x00000000, 0xFFFFFFFF);                                         
-    //inspect_dram(0x00000000, 0x00000009);
     block = read_dram(0x00000000);
-    print_dram_data(block);
+    data = get_block_data_at_address(block);
+    printf("data: %x\n", data);
     return 0;
 }
+*/

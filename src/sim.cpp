@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "shell.h"
+#include "dram.h"
 #include "uninspiring_macros.h"
 
 
@@ -1212,6 +1213,7 @@ void alu(){
       }
       case LB: {
         u32 vAddr = operand_a + sign_extend_16(operand_b);
+        printf("offset: %d\naddress: %8x\n", sign_extend_16(operand_b), vAddr);
         ex_mem_buffer.loadSize = 8;
         ex_mem_buffer.isLoadSigned = 1;
         set_alu_result(vAddr);
@@ -1280,7 +1282,7 @@ u32 SignExtend(u8 isSigned, u32 content, u32 loadSize){
 void read_data_from_memory(){
     if (ex_mem_buffer.mread){
         u32 vAddr = ex_mem_buffer.alu_result;
-        u32 content = mem_read_32(vAddr);
+        u32 content = read_dram(vAddr);
         if(ex_mem_buffer.loadSize != 32){
             content = GET_BLOCK(content, 0 , ex_mem_buffer.loadSize);
         }
@@ -1291,7 +1293,7 @@ void read_data_from_memory(){
 
 void store_data_to_memory(){
     if (ex_mem_buffer.mwrite){
-        mem_write_32(ex_mem_buffer.alu_result, ex_mem_buffer.storeValue);
+        write_dram(ex_mem_buffer.alu_result, ex_mem_buffer.storeValue);
     }
 }
 
