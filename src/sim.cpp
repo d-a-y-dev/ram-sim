@@ -18,12 +18,6 @@ MAKE_SIGN_EXTEND(8)
 
 int debug = 0;
 
-void debugPrint(char* message){
-    if(debug){
-        printf("%s\n", message);
-    }
-}
-
 /////////////////////////////////////
 // NOTE(Appy): Handlers, basically where the code goes
 //             when the first few bits denotes SPECIAL or REGIMM
@@ -218,7 +212,6 @@ int dependency = 0;
 
 void fetch()
 {
-  debugPrint("-----fetch-----");
   u32 instr = mem_read_32(CURRENT_STATE.PC);
   printf("%x\n", CURRENT_STATE.PC);
   if_id_buffer.instruction_register = instr;
@@ -304,14 +297,12 @@ void SetupControlSignals(){
             case SRL:
             case SRA:
             {
-                debugPrint("RTYPES");
                 SetControlSignals(0, 0, 0, 0, 1, 1, 0, 0, opcode);
                 break;
             } 
             case MULT:
             case MULTU:
             {
-                debugPrint("MULT | MULTU");
                 SetControlSignals(0, 0, 0, 0, 1, 1, 0, 0, opcode);
                 id_ex_buffer.hi.index = 1;
                 id_ex_buffer.lo.index = 1;
@@ -319,21 +310,18 @@ void SetupControlSignals(){
             } 
             case MTLO:
             {
-                debugPrint("MTLO");
                 SetControlSignals(0, 0, 0, 0, 1, 1, 0, 0, opcode);
                 id_ex_buffer.rd.index = 33;
                 break;
             } 
             case MTHI:
             {
-                debugPrint("MTHI");
                 SetControlSignals(0, 0, 0, 0, 1, 1, 0, 0, opcode);
                 id_ex_buffer.rd.index = 32;
                 break;
             } 
             case JR:
             {
-                debugPrint("JR");
                 SetControlSignals(1, 0, 0, 0, 0, 0, 0, 0, opcode);
                 id_ex_buffer.jumpAddress = id_ex_buffer.rs.value;
                 jump = 1;
@@ -341,7 +329,6 @@ void SetupControlSignals(){
             }
             case JALR:
             {
-                debugPrint("JALR");
                 SetControlSignals(1, 0, 0, 0, 1, 1, 0, 0, ADD);
                 id_ex_buffer.jumpAddress = id_ex_buffer.rs.value;
                 id_ex_buffer.rt.value = id_ex_buffer.program_counter;
@@ -359,7 +346,6 @@ void SetupControlSignals(){
         switch (op) {
         case BGEZAL:
         case BLTZAL: {
-                         debugPrint("BLTZAL | BGEZAL");
                          SetControlSignals(0, 1, 0, 0, 1, 0, 0, 1, opcode);
                          id_ex_buffer.rt.index = 31;
                          jump = 1;
@@ -367,7 +353,6 @@ void SetupControlSignals(){
                      }
         case BGEZ:
         case BLTZ: {
-                       debugPrint("BLTZ | BGEZ");
                        SetControlSignals(0, 1, 0, 0, 0, 0, 0, 1, opcode);
                        jump = 1;
                        break;
@@ -378,7 +363,6 @@ void SetupControlSignals(){
 
     case J:
     {
-        debugPrint("J");
         SetControlSignals(1, 0, 0, 0, 0, 0, 0, 0, opcode);
         u32 label = GET_BLOCK(if_id_buffer.instruction_register, 0, 26);
         id_ex_buffer.jumpAddress = label << 2;
@@ -386,7 +370,6 @@ void SetupControlSignals(){
         break;
     }
     case JAL : {
-        debugPrint("JAL");
         SetControlSignals(1, 0, 0, 0, 1, 1, 0, 0, ADD);
         id_ex_buffer.rd.index = 31;
         id_ex_buffer.rs.value = 4;
@@ -415,7 +398,6 @@ void SetupControlSignals(){
     case BGTZ:
     case BNE:
     case BEQ: {
-        debugPrint("BRANCH TYPE");
         SetControlSignals(0, 1, 0, 0, 0, 0, 0, 0, opcode);
         jump = 1;
         break;
@@ -428,7 +410,6 @@ void SetupControlSignals(){
     case LBU:
     case LHU:
     {
-        debugPrint("LOAD TYPE");
         SetControlSignals(0, 0, 0, 1, 1, 0, 1, 1, opcode);
         break;
     }
@@ -438,7 +419,6 @@ void SetupControlSignals(){
     case SH:
     case SW:
     {
-        debugPrint("STORE TYPE");
         SetControlSignals(0, 0, 1, 0, 0, 0, 0, 0, opcode);
         break;
     }
@@ -467,7 +447,6 @@ void CheckDependencies(){
   u8 rsi = GET(RS, if_id_buffer.instruction_register);
   u8 rti = GET(RT, if_id_buffer.instruction_register);
   u8 rdi = GET(RD, if_id_buffer.instruction_register);
-  printf("opcode: %x\n", opcode);
   switch(opcode)
   {
     // Rtypes
@@ -477,7 +456,6 @@ void CheckDependencies(){
         switch (code) {
             case SYSCALL:
             {
-                debugPrint("Syscall");
                 if(!registerStatus[2]){
                     dependency = 1;
                     syscall = 1;
@@ -504,9 +482,7 @@ void CheckDependencies(){
             case SRL:
             case SRA:
             {
-                printf("RTYPE\n");
                 if(!registerStatus[rsi] || !registerStatus[rti]){
-                debugPrint("Stall");
                 dependency = 1;
                 }
                 else{
@@ -519,11 +495,9 @@ void CheckDependencies(){
             case MULT:
             case MULTU:
             {
-                debugPrint("MULT\n");
                     id_ex_buffer.hi.index = 1;
                     id_ex_buffer.lo.index = 1;
                 if(!registerStatus[rsi] || !registerStatus[rti]){
-                debugPrint("Stall");
                 dependency = 1;
                 }
                 else{
@@ -533,9 +507,7 @@ void CheckDependencies(){
             }
             case MFHI:
             {
-                printf("MFHI\n");
                 if(!registerStatus[32]){
-                debugPrint("Stall");
                 dependency = 1;
                 }
                 else{
@@ -545,9 +517,7 @@ void CheckDependencies(){
             } 
             case MFLO:
             {
-                printf("MFLO\n");
                 if(!registerStatus[33]){
-                debugPrint("Stall");
                 dependency = 1;
                 }
                 else{
@@ -557,7 +527,6 @@ void CheckDependencies(){
             }
             case JR:
             {
-                debugPrint("JR");
                 if(!registerStatus[rsi]){
                     dependency = 1;
                 }
@@ -569,7 +538,6 @@ void CheckDependencies(){
             }
             case JALR:
             {
-                debugPrint("JALR");
                 if(!registerStatus[rsi]){
                     dependency = 1;
                 }
@@ -612,13 +580,10 @@ void CheckDependencies(){
         }
         case BLTZ:
         case BGEZ: {
-            debugPrint("Branch");
             if(!registerStatus[rsi]){
-                debugPrint("Dependency Stall");
                 dependency = 1;
             }
             else{
-                debugPrint("Brach Stall");
                 dependency = 0;
             }
             break;
@@ -629,9 +594,7 @@ void CheckDependencies(){
 
     case JAL:
     {
-        debugPrint("JAL");
         if(!registerStatus[31]){
-            debugPrint("31 Dependency");
             dependency = 1;
         }
         else{
@@ -641,7 +604,6 @@ void CheckDependencies(){
     }
     case J:
     {
-        debugPrint("J");
         break;
     }
 
@@ -678,10 +640,8 @@ void CheckDependencies(){
     case LH:
     case LBU:
     case LHU:{
-        debugPrint("Load");
         load = 1;
         if(!registerStatus[rsi] ){
-            debugPrint("Dependency Stall");
             dependency = 1;
         }
         else{
@@ -695,13 +655,10 @@ void CheckDependencies(){
     case BGTZ:
     case BNE:
     case BEQ: {
-        debugPrint("Branch");
         if(!registerStatus[rsi] || !registerStatus[rti]){
-            debugPrint("Dependency Stall");
             dependency = 1;
         }
         else{
-            debugPrint("Brach Stall");
             dependency = 0;
         }
         break;
@@ -714,9 +671,7 @@ void CheckDependencies(){
     case SH:
     case SW:
     {
-        debugPrint("Store");
         if(!registerStatus[rsi] || !registerStatus[rti]){
-            debugPrint("Stall");
             dependency = 1;
         }
         else{
@@ -734,7 +689,6 @@ int cycle_no = 0;
 void decode()
 {
       if(load){
-          debugPrint("HOT LOAD UGH");
           decode_timer = 2;
           fetch_timer = 2;
           fetch_status = 0;
@@ -743,7 +697,6 @@ void decode()
           load = 0;
           return;
       }
-  debugPrint("-----decode-----");
   CheckDependencies();
   setup_registers();
   SetupControlSignals();
@@ -752,25 +705,20 @@ void decode()
       u8 rsi = id_ex_buffer.rs.index;
       u8 ex_reg_dst = ex_mem_buffer.write_register;
       u8 mem_reg_dst = mem_wb_buffer.write_register;
-      printf("rti: %d\nrsi: %d\nex_reg_dst: %d\nmem_reg_dst: %d\n", rti, rsi, ex_reg_dst, mem_reg_dst);
       if(ex_reg_dst == rsi && ex_reg_dst != 0){
-          debugPrint("forward ex_mem to rs");
           id_ex_buffer.rs.value = ex_mem_buffer.alu_result;
           printf("alu_result: %x\n", ex_mem_buffer.alu_result);
 
       }
       else if(mem_reg_dst == rsi && mem_reg_dst != 0){
-          debugPrint("forward mem_wb to rs");
           id_ex_buffer.rs.value = mem_wb_buffer.alu_result;
           printf("alu_result: %x\n", mem_wb_buffer.alu_result);
       }
       if(ex_reg_dst == rti && ex_reg_dst != 0){
-          debugPrint("forward ex_mem to rt");
           id_ex_buffer.rt.value = ex_mem_buffer.alu_result;
           printf("alu_result: %x\n", ex_mem_buffer.alu_result);
       }
       else if(mem_reg_dst == rti && mem_reg_dst != 0){
-          debugPrint("forward mem_wb to rt");
           id_ex_buffer.rt.value = mem_wb_buffer.alu_result;
           printf("alu_result: %x\n", mem_wb_buffer.alu_result);
       }
@@ -793,7 +741,6 @@ void decode()
   }
   if(id_ex_buffer.jump){
     SetupControlSignals();
-    debugPrint("FLUSH");
     CURRENT_STATE.PC = id_ex_buffer.jumpAddress;
     reset_if_id();
   }
@@ -844,64 +791,52 @@ void alu(){
             switch(funct)
             {
                 case SYSCALL:{
-                     debugPrint("SYSCALL");
                     break;
                 }
                 case ADDU:{
-                     debugPrint("ADDU");
                     set_alu_result(operand_a + sign_extend_16(operand_b));
                     break;
                 }
                 case ADD:{
-                     debugPrint("ADD");
                     set_alu_result(operand_a + operand_b);
                     break;
                 }
                 case SUBU:
                 case SUB: {
-                     debugPrint("SUB");
                     set_alu_result(operand_a - operand_b);
                     break;
                 }
                 case OR: {
-                     debugPrint("OR");
                     set_alu_result(operand_a | operand_b);
                     break;
                 }
                 case NOR: {
-                     debugPrint("NOR");
                     set_alu_result(NOR_OP(operand_a, operand_b));
                     break;
                 }
                 case AND: {
-                     debugPrint("AND");
                     set_alu_result(operand_a & operand_b);
                     break;
                 }
                 case MTLO: {
-                     debugPrint("MTLO");
                    ex_mem_buffer.lo.index = 1;
                    ex_mem_buffer.lo.value = operand_a;
                    break;
                 }
                 case MTHI: {
-                     debugPrint("MTHI");
                    ex_mem_buffer.hi.index = 1;
                    ex_mem_buffer.hi.value = operand_a;
                    break;
                 }
                 case MFHI: {
-                     debugPrint("MFHI");
                    set_alu_result(ex_mem_buffer.hi.value);
                    break;
                 }
                 case MFLO: {
-                     debugPrint("MFLO");
                    set_alu_result(ex_mem_buffer.lo.value);
                    break;
                 }
                 case MULT: {
-                     debugPrint("MULT");
                    s32 rs     = operand_a;
                    s32 rt     = operand_b;
                    s64 result = rs * rt;
@@ -912,7 +847,6 @@ void alu(){
                    break;
                 }
                 case MULTU: {
-                     debugPrint("MULTU");
                     u64 result = cast(u64, operand_a) * cast(u64, operand_b);
                     ex_mem_buffer.hi.index = 1;
                     ex_mem_buffer.lo.index = 1;
@@ -922,19 +856,16 @@ void alu(){
                 }
                 case SLLV:
                 {
-                     debugPrint("SLLV");
                     u8 shift_amount = (operand_a & MASK(5));
                     set_alu_result(operand_b << shift_amount);
                     break;
                 }
                 case XOR:
                 {
-                     debugPrint("XOR");
                     set_alu_result(operand_a ^ operand_b);
                     break;
                 }
                 case SLT: {
-                     debugPrint("SLT");
                     s32 rt = operand_b;
                     s32 rs = operand_a;
                     set_alu_result((rs < rt));
@@ -942,7 +873,6 @@ void alu(){
                 }
                 case SLTU:
                 {
-                     debugPrint("SLTU");
                     u32 rt = operand_b;
                     u32 rs = operand_a;
                     set_alu_result((rs < rt));
@@ -950,7 +880,6 @@ void alu(){
                 }
                 case SRAV:
                {
-                     debugPrint("SRAV");
                     u8 shift_amount = (operand_a & MASK(5));
                     u32 rt = operand_b;
                     u8 sign_bit = ((rt >> 31) & 1);
@@ -961,13 +890,11 @@ void alu(){
                 }
                 case SRLV:
                 {
-                     debugPrint("SRLV");
                    u8 shift_amount = (operand_a & MASK(5));
                     set_alu_result(operand_b >> shift_amount);
                     break;
                 }
                 case DIVU:{
-                     debugPrint("DIVU");
                       u32 numerator   = operand_a;
                       u32 denominator = operand_b;
                       if (denominator != 0) {
@@ -979,7 +906,6 @@ void alu(){
                       break;
                 }
                 case DIV: {
-                     debugPrint("DIV");
                       s32 numerator   = s32t(operand_a);
                       s32 denominator = s32t(operand_b);
                       if (denominator != 0) {
@@ -991,18 +917,15 @@ void alu(){
                       break;
                 }
                 case SLL: {
-                     debugPrint("SLL");
                       set_alu_result(operand_b << sa);
                       break;
                 } // Shift Left
                 case SRL: {
-                     debugPrint("SRL");
                       set_alu_result(operand_b >> sa);
                       break;
                 }         // Shirt Right
                 case SRA: // Shift Right Addition
                 {
-                     debugPrint("SRA");
                       uint32_t operand = operand_b;
 
                       int need_extend = (operand >> 31) & 1;
@@ -1025,11 +948,9 @@ void alu(){
               u8 op = GET_BLOCK(id_ex_buffer.instruction_register, 16, 5);
               switch (op) {
               case BLTZ: {
-                debugPrint("BLTZ");
                 u32 addr = id_ex_buffer.program_counter + (sign_extend_16(operand_b) << 2);
                 int branch  = operand_a >> 31;
                 if (branch == 1){
-                    debugPrint("TAKE");
                     ex_mem_buffer.branchCondition  = 1;
                     ex_mem_buffer.jumpAddress = addr;
                 }
@@ -1086,7 +1007,6 @@ void alu(){
         }
         case ADDI:
         case ADDIU:{
-            printf("ADDI\n");
             u32 result = sign_extend_16(operand_b);
             set_alu_result(operand_a + result);
             break;
@@ -1249,7 +1169,6 @@ void alu(){
 }
 
 void execute(){
-  debugPrint("-----execute-----");
     ex_mem_buffer.hi = id_ex_buffer.hi;
     ex_mem_buffer.lo = id_ex_buffer.lo;
     ex_mem_buffer.jump = id_ex_buffer.jump;
@@ -1264,7 +1183,6 @@ void execute(){
     alu();
     set_ex_reg_write();
     if(ex_mem_buffer.branch && ex_mem_buffer.branchCondition){
-            debugPrint("FLUSH");
             CURRENT_STATE.PC = ex_mem_buffer.jumpAddress;
             reset_id_ex();
             reset_if_id();
@@ -1298,7 +1216,6 @@ void store_data_to_memory(){
 }
 
 void memory(){
-  debugPrint("-----memory-----");
     mem_wb_buffer.lo = ex_mem_buffer.lo;
     mem_wb_buffer.hi = ex_mem_buffer.hi;
     mem_wb_buffer.jump = ex_mem_buffer.jump;
@@ -1321,7 +1238,6 @@ void memory(){
 
 
 void write_back(){
-  debugPrint("-----writeback-----");
     RUN_BIT = mem_wb_buffer.run_bit;
     if (mem_wb_buffer.reg_write) {
     if (mem_wb_buffer.mem_to_rg){
@@ -1347,10 +1263,8 @@ void write_back(){
     }
     }
     if (mem_wb_buffer.jump){
-        debugPrint("JUMP");
     }
     else if (mem_wb_buffer.branch){
-        debugPrint("BRANCH");
     }
     else{
         CURRENT_STATE.PC = CURRENT_STATE.PC;
@@ -1388,7 +1302,6 @@ void reset_staller(){
 }
 
 void reset_state(){
-    debugPrint("reset_state");
     for(int i = 0; i < 34; i++){
         registerStatus[i] = 1;
     }

@@ -37,7 +37,6 @@ void print_s64   (s64   x) { printf      ("%ld\n", (s64)(x)) ;}
 void print_u64   (u64   x) { printf      ("%lu\n", (u64)(x)) ;}
 void print_charp (char* x) { printf      ("%s\n" ,      (x)) ;}
 void print_char  (char  x) { print_charp (&x)                ;}
-void print_unknown ()      { print_charp ("Unknown type")    ;}
 
 #define gprint(x) _Generic((x), \
   s8: print_s32,                \

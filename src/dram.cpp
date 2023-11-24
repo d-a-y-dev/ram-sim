@@ -12,20 +12,13 @@ using namespace std;
 
 dimm dram;
 
-void inspect_dram(uint32_t start_address, uint32_t end_address){
-    printf("inspecting dram from %x to %x\n", start_address, end_address-1);
-    uint32_t current_address = start_address;
-        while(current_address < end_address){
-            uint32_t col_id = current_address & 0x3FF;
-            uint32_t row_id = (current_address >> 10) & 0x3FF;
-            uint32_t bank_id = (current_address >> 20) & 0x7;
-            printf("current address: %x\n", current_address);
-                uint8_t byte = dram.chips[0].banks[bank_id].cells[row_id][col_id];
-                printf("%x\n", byte);
-            current_address++;
-        }
-}
-
+/********************************************************************/
+/*                                                                  */
+/* Procedure : get_block_data_at_address                            */
+/*                                                                  */
+/* Purpose   : return the specific 32 bits data desired from address*/
+/*                                                                  */
+/********************************************************************/
 uint32_t get_block_data_at_address(cache_block block){
     uint32_t first_part = (block.data[0] & 0xF);
     uint32_t second_part = (block.data[1]  & 0xF) << 4;
